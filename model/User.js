@@ -18,6 +18,10 @@ const User = database.define('User', {
     },
     token: {
         type: DataTypes.STRING
+    },
+    forgetToken: {
+        type: DataTypes.STRING,
+        allowNull: true
     }
 }, {
     freezeTableName: true,

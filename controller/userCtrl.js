@@ -1,6 +1,8 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../model/User');
+require('dotenv').config();
+const { emailSender } = require('./email')
 const ResponseData = {
     Status: "..SUCCESS..",
     Response: null,
@@ -124,8 +126,62 @@ const updatePassword = async (req, res) => {
     }
 }
 
+const forgetPassword = async (req, res) => {
+    try {
+        let passReg = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$/;
+        let data = await User.findOne({ where: { userName: req.body.userName } });
+        if (data) {
+            let forgetTkn = await jwt.sign({ userName: req.body.userName, date: Date.now() }, "token");
+            console.log(forgetTkn)
+            await User.update({ forgetToken: forgetTkn }, { where: { userName: req.body.userName } })
+            if (!passReg.test(req.body.password)) {
+                ErrorData.Message = "Password doesn't match requirement ..";
+                res.status(400).json(ErrorData);
+                return
+            }
+            emailSender(data.userName, `http://localhost:5000/forget`);
+            res.status(200).json({ message: "Mail is sent to you" })
+        } else {
+            ErrorData.Message = "User is not found..";
+            res.status(400).json(ErrorData);
+            return
+        }
 
 
+    } catch (err) {
+        ErrorData.Message = err.message;
+        res.status(400).json(ErrorData);
+    }
+}
+const forget = async (req, res) => {
+    try {
+        console.log("forget..")
 
+        let pwd = req.body.password;
+        let forgetToken = req.body.forgetToken;
+        let userToken = req.body.userToken;
+        let passReg = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$/;
+        if (forgetToken === userToken) {
+            if (passReg.test(pwd)) {
+                const latestPwd = await bcrypt.hash(pwd, 10)
+                await User.update({ password: latestPwd }, { where: { userName: req.body.userName } });
+            } else {
+                ErrorData.Message = "Incorrect Password";
+                res.status(400).json(ErrorData);
+                return
+            }
+            ResponseData.Message = "Successfully change the password";
+            res.status(200).json(ResponseData);
 
-module.exports = { signUp, updatePassword }
+        } else {
+            ErrorData.Message = "Incorrect Json Web Token";
+            res.status(400).json(ErrorData);
+            return
+        }
+    } catch (err) {
+        console.log(err)
+        ErrorData.Message = err.message;
+        res.status(400).json(ErrorData);
+    }
+}
+module.exports = { signUp, updatePassword, forgetPassword, forget }
