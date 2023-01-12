@@ -150,7 +150,6 @@ const forgetPassword = async (req, res) => {
 const forget = async (req, res) => {
     try {
         console.log("forget..")
-
         let pwd = req.body.password;
         let forgetToken = req.body.forgetToken;
         let userToken = req.body.userToken;
