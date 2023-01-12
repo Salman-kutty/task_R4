@@ -127,18 +127,12 @@ const updatePassword = async (req, res) => {
 }
 
 const forgetPassword = async (req, res) => {
-    try {
-        let passReg = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$/;
+    try {        
         let data = await User.findOne({ where: { userName: req.body.userName } });
         if (data) {
             let forgetTkn = await jwt.sign({ userName: req.body.userName, date: Date.now() }, "token");
             console.log(forgetTkn)
-            await User.update({ forgetToken: forgetTkn }, { where: { userName: req.body.userName } })
-            if (!passReg.test(req.body.password)) {
-                ErrorData.Message = "Password doesn't match requirement ..";
-                res.status(400).json(ErrorData);
-                return
-            }
+            await User.update({ forgetToken: forgetTkn }, { where: { userName: req.body.userName } })           
             emailSender(data.userName, `http://localhost:5000/forget`);
             res.status(200).json({ message: "Mail is sent to you" })
         } else {
